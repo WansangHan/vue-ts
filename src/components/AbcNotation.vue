@@ -5,9 +5,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, defineProps } from 'vue';
 import abcjs from 'abcjs';
-import { defineProps } from 'vue';
 
 const props = defineProps<{
   notation: string
