@@ -32,15 +32,15 @@ import { ref, computed, defineProps, defineEmits } from 'vue';
 import { MajorScale } from '@/functions/music/Scale';
 
 // Props
-defineProps({
+const props = defineProps({
   answer: {
-    type: Object,
+    type: Number,
     required: true,
   },
 });
 
 // Emits
-defineEmits(['answer-correct', 'answer-fail']);
+const emit = defineEmits(['onAnswerCorrect', 'onAnswerFail']);
 
 // 흰 건반 데이터 정의
 const whiteKeys = ref([
@@ -71,17 +71,17 @@ const filteredBlackKeys = computed(() =>
 
 // 키 클릭 처리
 function onClickKey(key) {
-  if (!key || !key.scale) {
-    console.warn('Invalid key clicked:', key);
+  if (!key) {
+    console.warn('Invalid key clicked:');
     return;
   }
 
-  if (key.scale === answer.scale) {
-    emit('answer-correct');
+  if (key.scale === props.answer) {
+    emit('onAnswerCorrect');
   } else {
     key.isClicked = true; // 클릭 상태 변경
     whiteKeys.value = [...whiteKeys.value]; // 반응성 강제 갱신
-    emit('answer-fail');
+    emit('onAnswerFail');
   }
 }
 </script>
