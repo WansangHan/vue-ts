@@ -12,8 +12,8 @@
       <!-- 피아노 건반 컴포넌트 -->
       <PianoKeys
         :answer="answer"
-        :onAnswerCorrect="OnAnswerCorrect"
-        :onAnswerFail="OnAnswerFail"
+        @on-answer-correct="OnAnswerCorrect"
+        @on-answer-fail="OnAnswerFail"
       />
   
       <!-- 결과 모달 -->

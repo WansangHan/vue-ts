@@ -6,7 +6,7 @@
         v-for="key in whiteKeys"
         :key="'white-' + key.scale"
         class="white-key scale-button"
-        :class="{ 'quiz_fail': key?.isClicked }"
+        :class="{ 'white-fail': key?.isClicked }"
         @click="onClickKey(key)"
       >
         {{ key.text }}
@@ -18,7 +18,7 @@
         :key="'black-' + key.scale"
         class="black-key scale-button"
         :style="{ left: `${key.left}px` }"
-        :class="{ 'quiz_fail': key?.isClicked }"
+        :class="{ 'black-fail': key?.isClicked }"
         @click="onClickKey(key)"
       >
         {{ key.text }}
@@ -132,7 +132,11 @@ function onClickKey(key) {
   box-sizing: border-box;
 }
 
-.quiz_fail {
-  background: red !important;
+.white-fail {
+  background: #ffcccb !important; /* 흰 건반 오답 색상 */
+}
+
+.black-fail {
+  background: #e57373 !important; /* 검은 건반 오답 색상 */
 }
 </style>
