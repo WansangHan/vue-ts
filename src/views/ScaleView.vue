@@ -22,26 +22,13 @@
     </BaseModal>
 
     <!-- 상세 모달 -->
-    <BaseModal v-if="showDetailModal" :visible="showDetailModal" @next="showDetailModal = false">
-      <el-table :data="sortedScaleQuizItems" border style="width: 100%">
-        <el-table-column prop="scale" label="Scale" />
-        <el-table-column
-          prop="isSolvedCorrectly"
-          label="Solved"
-          :formatter="formatSolvedStatus"
-        />
-        <el-table-column
-          prop="during"
-          label="Time Taken (s)"
-          :formatter="formatTimeTaken"
-        />
-        <el-table-column
-          prop="saveTime"
-          label="Saved At"
-          :formatter="formatSaveTime"
-        />
-      </el-table>
-    </BaseModal>
+    <DataViewerModal
+      v-if="showDetailModal"
+      :visible="showDetailModal"
+      :items="sortedScaleQuizItems"
+      :columns="columns"
+      @onClose="showDetailModal = false"
+    />
   </div>
 
   <div v-else>Loading...</div>
@@ -52,13 +39,12 @@ import { ref, onMounted, onUnmounted, computed } from 'vue';
 import AbcNotation from '@/components/AbcNotation.vue';
 import BaseModal from '@/components/Modals/BaseModal.vue';
 import PianoKeys from '@/components/PianoKeys.vue';
+import DataViewerModal from '@/components/Modals/DataViewerModal.vue';
 import { MajorScaleToAbcNotation, getRandomMajorScale } from '@/functions/music/Scale';
 import { useStore } from '@/store/modules/indexedDB';
-import { ElMessageBox } from 'element-plus';
 
 const store = useStore();
 
-// 상태 변수
 const loading = ref(true);
 const abcNotation = ref('');
 const formattedElapsedTime = ref('0.0');
@@ -71,12 +57,17 @@ let intervalId = null;
 let answer = null;
 let quizStartTime = null;
 
-// 계산된 정렬된 데이터
 const sortedScaleQuizItems = computed(() =>
-  [...scaleQuizItems.value].sort((a, b) => b.saveTime - a.saveTime) // 최근 저장된 순으로 정렬
+  [...scaleQuizItems.value].sort((a, b) => b.saveTime - a.saveTime)
 );
 
-// 컴포넌트 마운트 시 초기화
+const columns = [
+  { prop: 'scale', label: 'Scale' },
+  { prop: 'isSolvedCorrectly', label: 'Solved', formatter: row => (row.isSolvedCorrectly ? '✔️' : '❌') },
+  { prop: 'during', label: 'Time Taken (s)', formatter: row => (row.during / 1000).toFixed(1) },
+  { prop: 'saveTime', label: 'Saved At', formatter: row => new Date(row.saveTime).toLocaleString() },
+];
+
 onMounted(async () => {
   try {
     await store.dispatch('initDB');
@@ -88,20 +79,17 @@ onMounted(async () => {
   }
 });
 
-// 컴포넌트 언마운트 시 타이머 정리
 onUnmounted(() => {
   if (intervalId) {
     clearInterval(intervalId);
   }
 });
 
-// 경과 시간 업데이트
 const updateElapsedTime = () => {
   elapsedTime.value += 0.1;
   formattedElapsedTime.value = elapsedTime.value.toFixed(1);
 };
 
-// 퀴즈 생성
 function MakeQuiz() {
   answer = getRandomMajorScale();
   abcNotation.value = MajorScaleToAbcNotation(answer) + '\n|';
@@ -109,7 +97,6 @@ function MakeQuiz() {
   elapsedTime.value = 0;
 }
 
-// 정답 처리
 async function OnAnswerCorrect() {
   const duration = performance.now() - quizStartTime;
   modalText.value = `You took ${(duration / 1000).toFixed(1)} seconds`;
@@ -126,28 +113,31 @@ async function OnAnswerCorrect() {
   scaleQuizItems.value.push(item);
 }
 
-// 오답 처리
 function OnAnswerFail() {
   modalText.value = 'Wrong answer! Try again.';
   showResultModal.value = true;
 }
 
-// 다음 문제로 이동
 function OnClickNextInModal() {
   showResultModal.value = false;
   MakeQuiz();
 }
-
-// 포맷터 함수
-function formatSolvedStatus(row) {
-  return row.isSolvedCorrectly ? '✔️' : '❌';
-}
-
-function formatTimeTaken(row) {
-  return (row.during / 1000).toFixed(1);
-}
-
-function formatSaveTime(row) {
-  return new Date(row.saveTime).toLocaleString();
-}
 </script>
+
+<style scoped>
+.close-button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.close-button:hover {
+  background-color: #0056b3;
+}
+</style>
