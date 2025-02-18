@@ -20,8 +20,8 @@ export default defineComponent({
       const minRange = FullRangeNote.A3;
       const maxRange = FullRangeNote.A5;
 
-      let lower = getRandomChromaticNote();
-      let higher = getRandomChromaticNote();
+      const lower = getRandomChromaticNote();
+      const higher = getRandomChromaticNote();
 
       console.log(`lower : ${ChromaticNote[lower]}`);
       console.log(`higher : ${ChromaticNote[higher]}`);
@@ -31,7 +31,7 @@ export default defineComponent({
       // minRange보다 큰 FullRangeNote만 추린다.
       selectedLowers = selectedLowers.filter((e) => minRange <= e);
 
-      let distanceBetweenLowerHigher = getChromaticNoteDistance(lower, higher);
+      const distanceBetweenLowerHigher = getChromaticNoteDistance(lower, higher);
 
       // minRange보다 작은 FullRangeNote만 추린다.
       selectedLowers = selectedLowers.filter((e) => maxRange >= e + distanceBetweenLowerHigher);

@@ -1,14 +1,14 @@
 import { InjectionKey } from 'vue'
 import { createStore, useStore as baseUseStore, Store } from 'vuex'
 import { openDB, DBSchema, IDBPDatabase } from 'idb'
-import { MajorScale } from '@/functions/music/Scale';
+import { ChromaticNote } from '@/functions/music/Note';
 
 // 스케일 문제를 푼 결과를 저장하는 interface
 export interface ScaleQuizItem {
   // id
   id?: number;
   // 스케일 enum 번호
-  scale: MajorScale;
+  scale: ChromaticNote;
   // 저장 시간
   saveTime: number;
   // 한번에 정답을 맞췄는 지 여부

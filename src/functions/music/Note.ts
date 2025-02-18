@@ -107,3 +107,16 @@ export function getFullRangeNoteByChromaticNote(selected: ChromaticNote)
 
     return allNotes;
 }
+
+export const getNoteFromRoot = (root: ChromaticNote, step: number): ChromaticNote => {
+    const chromaticScale = Object.values(ChromaticNote) as ChromaticNote[];
+    const rootIndex = chromaticScale.indexOf(root);
+
+    // 루트 음이 유효하지 않다면 기본값 반환
+    if (rootIndex === -1) {
+        console.error(`Invalid root note: ${root}`);
+        return ChromaticNote.C; // 기본값 C를 반환하도록 설정
+    }
+
+    return chromaticScale[(rootIndex + step) % chromaticScale.length];
+};

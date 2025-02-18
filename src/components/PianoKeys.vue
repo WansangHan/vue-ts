@@ -29,7 +29,7 @@
 
 <script setup>
 import { ref, computed, defineProps, defineEmits } from 'vue';
-import { MajorScale } from '@/functions/music/Scale';
+import { ChromaticNote } from '@/functions/music/Note';
 
 // Props
 const props = defineProps({
@@ -44,23 +44,23 @@ const emit = defineEmits(['onAnswerCorrect', 'onAnswerFail']);
 
 // 흰 건반 데이터 정의
 const whiteKeys = ref([
-  { scale: MajorScale.C, text: "C", isClicked: false },
-  { scale: MajorScale.D, text: "D", isClicked: false },
-  { scale: MajorScale.E, text: "E", isClicked: false },
-  { scale: MajorScale.F, text: "F", isClicked: false },
-  { scale: MajorScale.G, text: "G", isClicked: false },
-  { scale: MajorScale.A, text: "A", isClicked: false },
-  { scale: MajorScale.B, text: "B", isClicked: false },
+  { scale: ChromaticNote.C, text: "C", isClicked: false },
+  { scale: ChromaticNote.D, text: "D", isClicked: false },
+  { scale: ChromaticNote.E, text: "E", isClicked: false },
+  { scale: ChromaticNote.F, text: "F", isClicked: false },
+  { scale: ChromaticNote.G, text: "G", isClicked: false },
+  { scale: ChromaticNote.A, text: "A", isClicked: false },
+  { scale: ChromaticNote.B, text: "B", isClicked: false },
 ]);
 
 // 검은 건반 데이터 정의 (left 값 포함)
 const rawBlackKeys = [
-  { scale: MajorScale.C_D, text: "C#", isClicked: false, left: 27 },
-  { scale: MajorScale.D_E, text: "D#", isClicked: false, left: 69 },
+  { scale: ChromaticNote.C_D, text: "C#", isClicked: false, left: 27 },
+  { scale: ChromaticNote.D_E, text: "D#", isClicked: false, left: 69 },
   { isEmpty: true }, // E와 F 사이
-  { scale: MajorScale.F_G, text: "F#", isClicked: false, left: 153 },
-  { scale: MajorScale.G_A, text: "G#", isClicked: false, left: 195 },
-  { scale: MajorScale.A_B, text: "A#", isClicked: false, left: 237 },
+  { scale: ChromaticNote.F_G, text: "F#", isClicked: false, left: 153 },
+  { scale: ChromaticNote.G_A, text: "G#", isClicked: false, left: 195 },
+  { scale: ChromaticNote.A_B, text: "A#", isClicked: false, left: 237 },
   { isEmpty: true }, // B와 C 사이
 ];
 

@@ -17,7 +17,7 @@
   import SimpleModal from '@/components/Modals/SimpleModal.vue';
   import { defineProps } from 'vue';
   
-  const props = defineProps({
+  defineProps({
     items: {
       type: Array,
       required: true,
