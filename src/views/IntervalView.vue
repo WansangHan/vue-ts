@@ -1,51 +1,91 @@
 <template>
-  <div>
-    <AbcNotation :notation="abcNotation" />
+  <div class="interval-view">
+    <h1>음정 맞추기</h1>
+    <AbcNotation :abcNotation="abcNotation" />
+    <div class="options">
+      <button
+        v-for="interval in intervalOptions"
+        :key="interval"
+        :class="{ correct: isCorrect(interval), selected: userAnswer === interval }"
+        @click="checkAnswer(interval)"
+      >
+        {{ interval }}
+      </button>
+    </div>
+    <p v-if="userAnswer !== null">
+      {{ isCorrect(userAnswer) ? "정답입니다!" : "틀렸습니다. 다시 시도해보세요." }}
+    </p>
+    <button @click="generateQuestion">새 문제</button>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
-import AbcNotation from '@/components/AbcNotation.vue';
-import { ChromaticNote, FullRangeNote, convertToAbcNotation, getChromaticNoteDistance, getFullRangeNoteByChromaticNote, getRandomChromaticNote } from '@/functions/music/Note';
+<script setup lang="ts">
+import { ref, computed } from "vue";
+import { ChromaticNote } from "@/functions/music/Note";
+import { getIntervalName, Interval } from "@/functions/music/Interval";
+import AbcNotation from "@/components/AbcNotation.vue";
 
-export default defineComponent({
-  components: {
-    AbcNotation
-  },
-  setup() {
-    const abcNotation = ref('');
+// 랜덤 음 생성 함수
+const getRandomNote = () => {
+  const notes = Object.values(ChromaticNote) as ChromaticNote[];
+  return notes[Math.floor(Math.random() * notes.length)];
+};
 
-    onMounted(() => {
-      const minRange = FullRangeNote.A3;
-      const maxRange = FullRangeNote.A5;
+// 문제에 사용할 음
+const note1 = ref(getRandomNote());
+const note2 = ref(getRandomNote());
 
-      const lower = getRandomChromaticNote();
-      const higher = getRandomChromaticNote();
+// 정답 음정 계산
+const correctInterval = computed(() => getIntervalName(note1.value, note2.value));
+const userAnswer = ref<string | null>(null);
 
-      console.log(`lower : ${ChromaticNote[lower]}`);
-      console.log(`higher : ${ChromaticNote[higher]}`);
+// Interval Enum 기반으로 선택지 생성
+const intervalOptions = Object.values(Interval);
 
-      let selectedLowers = getFullRangeNoteByChromaticNote(lower);
-
-      // minRange보다 큰 FullRangeNote만 추린다.
-      selectedLowers = selectedLowers.filter((e) => minRange <= e);
-
-      const distanceBetweenLowerHigher = getChromaticNoteDistance(lower, higher);
-
-      // minRange보다 작은 FullRangeNote만 추린다.
-      selectedLowers = selectedLowers.filter((e) => maxRange >= e + distanceBetweenLowerHigher);
-
-      // selectedLowers의 첫 번째 값으로 우선 출력
-      abcNotation.value = "[";
-      abcNotation.value += convertToAbcNotation(selectedLowers[0]);
-      abcNotation.value += convertToAbcNotation(selectedLowers[0] + distanceBetweenLowerHigher);
-      abcNotation.value += "]";
-    });
-
-    return {
-      abcNotation
-    };
-  }
+const abcNotation = computed(() => {
+  return `X:1\nL:1/4\nK:C\n${note1.value} ${note2.value}`;
 });
+
+const isCorrect = (answer: string) => answer === correctInterval.value;
+
+const checkAnswer = (answer: string) => {
+  userAnswer.value = answer;
+};
+
+const generateQuestion = () => {
+  note1.value = getRandomNote();
+  note2.value = getRandomNote();
+  userAnswer.value = null;
+};
 </script>
+
+<style scoped>
+.interval-view {
+  text-align: center;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+button {
+  padding: 10px 16px;
+  border: none;
+  background-color: #ddd;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button.correct {
+  background-color: #4caf50;
+  color: white;
+}
+
+button.selected {
+  border: 2px solid #000;
+}
+</style>
