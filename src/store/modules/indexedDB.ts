@@ -1,83 +1,99 @@
-import { InjectionKey } from 'vue'
-import { createStore, useStore as baseUseStore, Store } from 'vuex'
-import { openDB, DBSchema, IDBPDatabase } from 'idb'
-import { ChromaticNote } from '@/functions/music/Note';
+import { InjectionKey } from 'vue';
+import { createStore, Store } from 'vuex';
+import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import {
+  ChordQuizItem,
+  IntervalQuizItem,
+  ScaleQuizItem,
+  ScaleDegreeQuizItem,
+} from '@/types/QuizItem';
 
-// 스케일 문제를 푼 결과를 저장하는 interface
-export interface ScaleQuizItem {
-  // id
-  id?: number;
-  // 스케일 enum 번호
-  scale: ChromaticNote;
-  // 저장 시간
-  saveTime: number;
-  // 한번에 정답을 맞췄는 지 여부
-  isSolvedCorrectly: boolean;
-  // 답을 맞출 때 까지 걸린 시간
-  during: number;
+// Vuex Store Key
+export const key: InjectionKey<Store<State>> = Symbol();
+
+// 퀴즈 유형을 Enum으로 정의
+export enum QuizType {
+  Chord = 'ChordQuizStore',
+  Interval = 'IntervalQuizStore',
+  Scale = 'ScaleQuizStore',
+  ScaleDegree = 'ScaleDegreeQuizStore',
 }
 
-// DBSchema는 IndexedDB의 데이터베이스 구조를 정의하는 기본 인터페이스이다
-// BrainHarmonicsDB는 이 기본 인터페이스를 확장하여 특정 데이터베이스 구조를 정의한다.
-// DB 내에서 사용할 타입을 만들 때에는 내부의 ScaleQuizStore처럼, Store를 늘리고 그 내부에 타입을 만든다.
-interface BrainHarmonicsDB extends DBSchema {
-  ScaleQuizStore: {
-    key: number;
-    value: ScaleQuizItem;
-  };
-}
+// 데이터베이스 설정
+const DB_NAME = 'BrainHarmonicsDB';
+const DB_VERSION = 1;
 
-// Vuex 스토어에서 상태를 타입 안전하게 관리하기 위해 사용된다
-// 상태의 타입을 정의하여 Vuex 스토어에서 상태를 보다 안전하게 다룰 수 있게 한다.
+// Vuex 상태 정의
 interface State {
   db: IDBPDatabase<BrainHarmonicsDB> | null;
   scaleQuizItems: ScaleQuizItem[];
 }
 
-export const key: InjectionKey<Store<State>> = Symbol()
+// DBSchema 확장하여 데이터베이스 구조 정의
+interface BrainHarmonicsDB extends DBSchema {
+  [QuizType.Chord]: {
+    key: number;
+    value: ChordQuizItem;
+  };
+  [QuizType.Interval]: {
+    key: number;
+    value: IntervalQuizItem;
+  };
+  [QuizType.Scale]: {
+    key: number;
+    value: ScaleQuizItem;
+  };
+  [QuizType.ScaleDegree]: {
+    key: number;
+    value: ScaleDegreeQuizItem;
+  };
+}
 
+// Vuex Store 생성
 export const store = createStore<State>({
   state: {
     db: null,
-    scaleQuizItems: []
+    scaleQuizItems: [],
   },
-  // mutations는 동기 작업만 수행한다.
-  // mutations는 state를 수정하는 유일한 방법이다.
-  // mutations는 store.commit()으로 호출된다.
   mutations: {
     setDB(state, db: IDBPDatabase<BrainHarmonicsDB>) {
-      state.db = db
+      state.db = db;
     },
     setItems(state, items: ScaleQuizItem[]) {
-      state.scaleQuizItems = items
-    }
+      state.scaleQuizItems = items;
+    },
   },
-  // actions는 비동기 작업도 수행한다.
-  // actions는 store.dispatch()로 호출된다.
   actions: {
     async initDB({ commit }) {
-      const db = await openDB<BrainHarmonicsDB>('BrainHarmonicsDatabase', 1, {
+      const db = await openDB<BrainHarmonicsDB>(DB_NAME, DB_VERSION, {
         upgrade(db) {
-          db.createObjectStore('ScaleQuizStore', { keyPath: 'id', autoIncrement: true })
-        }
-      })
-      commit('setDB', db)
+          for (const storeName of Object.values(QuizType)) {
+            if (!db.objectStoreNames.contains(storeName)) {
+              db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+            }
+          }
+        },
+      });
+      commit('setDB', db);
     },
-    async addScaleQuizStore({ state, dispatch }, item: ScaleQuizItem) {
+    async addQuizResult({ state, dispatch }, { quizType, item }: { quizType: QuizType; item: Omit<ChordQuizItem, 'id'> }) {
       if (state.db) {
-        await state.db.add('ScaleQuizStore', item)
-        await dispatch('getAllItems')
+        await state.db.add(quizType, item);
+        await dispatch('getAllItems', quizType);
       }
     },
-    async getAllItems({ state, commit }) {
+    async getAllItems({ state, commit }, quizType: QuizType) {
       if (state.db) {
-        const items = await state.db.getAll('ScaleQuizStore')
-        commit('setItems', items)
+        const items = await state.db.getAll(quizType);
+        commit('setItems', items);
       }
-    }
-  }
-})
+    },
+    async clearQuizResults({ state }, quizType: QuizType) {
+      if (state.db) {
+        await state.db.clear(quizType);
+      }
+    },
+  },
+});
 
-export function useStore() : Store<State> {
-  return baseUseStore(key)
-}
+
