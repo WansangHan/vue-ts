@@ -49,7 +49,20 @@ interface BrainHarmonicsDB extends DBSchema {
   };
 }
 
-// Vuex Store 생성
+// IndexedDB에서 퀴즈 항목을 가져오는 함수
+export async function getQuizItem(quizId: string, quizType: QuizType): Promise<ChordQuizItem | IntervalQuizItem | ScaleQuizItem | ScaleDegreeQuizItem | null> {
+  const db = await openDB<BrainHarmonicsDB>(DB_NAME, DB_VERSION);
+  const item = await db.get(quizType, Number(quizId));
+  return item === undefined ? null : item;
+}
+
+// IndexedDB에 퀴즈 결과를 저장하는 함수
+export async function saveQuizResult(quizId: string, quizType: QuizType, quizItem: ChordQuizItem | IntervalQuizItem | ScaleQuizItem | ScaleDegreeQuizItem): Promise<void> {
+  const db = await openDB<BrainHarmonicsDB>(DB_NAME, DB_VERSION);
+  await db.put(quizType, quizItem, Number(quizId));
+}
+
+// Vuex 스토어 생성
 export const store = createStore<State>({
   state: {
     db: null,
@@ -59,41 +72,19 @@ export const store = createStore<State>({
     setDB(state, db: IDBPDatabase<BrainHarmonicsDB>) {
       state.db = db;
     },
-    setItems(state, items: ScaleQuizItem[]) {
+    setScaleQuizItems(state, items: ScaleQuizItem[]) {
       state.scaleQuizItems = items;
     },
   },
   actions: {
     async initDB({ commit }) {
-      const db = await openDB<BrainHarmonicsDB>(DB_NAME, DB_VERSION, {
-        upgrade(db) {
-          for (const storeName of Object.values(QuizType)) {
-            if (!db.objectStoreNames.contains(storeName)) {
-              db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
-            }
-          }
-        },
-      });
+      const db = await openDB<BrainHarmonicsDB>(DB_NAME, DB_VERSION);
       commit('setDB', db);
     },
-    async addQuizResult({ state, dispatch }, { quizType, item }: { quizType: QuizType; item: Omit<ChordQuizItem, 'id'> }) {
-      if (state.db) {
-        await state.db.add(quizType, item);
-        await dispatch('getAllItems', quizType);
-      }
-    },
-    async getAllItems({ state, commit }, quizType: QuizType) {
-      if (state.db) {
-        const items = await state.db.getAll(quizType);
-        commit('setItems', items);
-      }
-    },
-    async clearQuizResults({ state }, quizType: QuizType) {
-      if (state.db) {
-        await state.db.clear(quizType);
-      }
+    async fetchScaleQuizItems({ state, commit }) {
+      if (!state.db) return;
+      const items = await state.db.getAll(QuizType.Scale);
+      commit('setScaleQuizItems', items);
     },
   },
 });
-
-

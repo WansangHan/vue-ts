@@ -2,142 +2,118 @@
   <div v-if="!loading">
     <!-- 시간 표시 및 상세 버튼 -->
     <div>
-      elapsed : {{ formattedElapsedTime }}
-      <button @click="showDetailModal = true">detail</button>
+      경과 시간: {{ formattedElapsedTime }}
+      <button @click="showDetailModal = true">상세</button>
     </div>
-
     <!-- ABC 노테이션 -->
     <AbcNotation v-if="abcNotation" :notation="abcNotation" />
-
     <!-- 피아노 건반 컴포넌트 -->
     <PianoKeys
       :answer="answer"
-      @on-answer-correct="OnAnswerCorrect"
-      @on-answer-fail="OnAnswerFail"
+      @on-answer-correct="onAnswerCorrect"
+      @on-answer-fail="onAnswerFail"
     />
-
     <!-- 결과 모달 -->
-    <BaseModal v-if="showResultModal" :visible="showResultModal" @next="OnClickNextInModal">
+    <BaseModal v-if="showResultModal" :visible="showResultModal" @next="onClickNextInModal">
       {{ modalText }}
     </BaseModal>
-
     <!-- 상세 모달 -->
-    <DataViewerModal
-      v-if="showDetailModal"
-      :visible="showDetailModal"
-      :items="sortedScaleQuizItems"
-      :columns="columns"
-      @onClose="showDetailModal = false"
-    />
+    <BaseModal v-if="showDetailModal" :visible="showDetailModal" @next="onClickNextInModal">
+      <div v-for="(note, index) in notes" :key="index">
+        {{ note }}
+      </div>
+    </BaseModal>
   </div>
-
-  <div v-else>Loading...</div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { SpacedRepetition } from '@/utils/SpacedRepetition';
 import AbcNotation from '@/components/AbcNotation.vue';
-import BaseModal from '@/components/Modals/BaseModal.vue';
 import PianoKeys from '@/components/PianoKeys.vue';
-import DataViewerModal from '@/components/Modals/DataViewerModal.vue';
-import { MajorScaleToAbcNotation, getRandomMajorScale } from '@/functions/music/Scale';
-import { useStore } from '@/store/modules/indexedDB';
-
-const store = useStore();
+import BaseModal from '@/components/Modals/BaseModal.vue';
+import { QuizItem } from '@/types/QuizItem'; // QuizItem 타입 가져오기
 
 const loading = ref(true);
-const abcNotation = ref('');
-const formattedElapsedTime = ref('0.0');
 const showResultModal = ref(false);
 const showDetailModal = ref(false);
 const modalText = ref('');
-const elapsedTime = ref(0);
-const scaleQuizItems = computed(() => store.state.scaleQuizItems);
-let intervalId = null;
-let answer = null;
-let quizStartTime = null;
-
-const sortedScaleQuizItems = computed(() =>
-  [...scaleQuizItems.value].sort((a, b) => b.saveTime - a.saveTime)
-);
-
-const columns = [
-  { prop: 'scale', label: 'Scale' },
-  { prop: 'isSolvedCorrectly', label: 'Solved', formatter: row => (row.isSolvedCorrectly ? '✔️' : '❌') },
-  { prop: 'during', label: 'Time Taken (s)', formatter: row => (row.during / 1000).toFixed(1) },
-  { prop: 'saveTime', label: 'Saved At', formatter: row => new Date(row.saveTime).toLocaleString() },
-];
+const abcNotation = ref('');
+const answer = ref('');
+const notes = ref<string[]>([]);
+const startTime = ref<Date | null>(null);
+const formattedElapsedTime = ref('00:00');
+const currentQuiz = ref<QuizItem | null>(null);
 
 onMounted(async () => {
-  try {
-    await store.dispatch('initDB');
-    await store.dispatch('getAllItems');
-    MakeQuiz();
-    intervalId = setInterval(updateElapsedTime, 100);
-  } finally {
-    loading.value = false;
+  // 복습해야 할 퀴즈 불러오기
+  const quizzesToReview = await SpacedRepetition.getQuizzesToReview();
+  if (quizzesToReview.length > 0) {
+    currentQuiz.value = quizzesToReview[0]; // 첫 번째 복습 문제 설정
+    loadQuiz(currentQuiz.value);
+  } else {
+    // 복습할 퀴즈가 없을 경우 새로운 퀴즈 로드
+    loadNewQuiz();
   }
+  startTimer();
+  loading.value = false;
 });
 
-onUnmounted(() => {
-  if (intervalId) {
-    clearInterval(intervalId);
+function loadQuiz(quiz: QuizItem) {
+  abcNotation.value = quiz.question;
+  answer.value = quiz.correctAnswer;
+  notes.value = parseNotesFromQuestion(quiz.question);
+}
+
+function loadNewQuiz() {
+  // 새로운 퀴즈를 로드하는 로직을 구현하세요.
+}
+
+function parseNotesFromQuestion(): string[] {
+  // 질문에서 노트를 파싱하는 로직을 구현하세요.
+  return [];
+}
+
+function startTimer() {
+  startTime.value = new Date();
+  setInterval(updateElapsedTime, 1000);
+}
+
+function updateElapsedTime() {
+  if (!startTime.value) return;
+  const now = new Date();
+  const elapsed = new Date(now.getTime() - startTime.value.getTime());
+  const minutes = String(elapsed.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(elapsed.getUTCSeconds()).padStart(2, '0');
+  formattedElapsedTime.value = `${minutes}:${seconds}`;
+}
+
+async function onAnswerCorrect() {
+  modalText.value = '정답입니다!';
+  showResultModal.value = true;
+  if (currentQuiz.value) {
+    await SpacedRepetition.updateQuizSchedule(currentQuiz.value.id, true);
   }
-});
-
-const updateElapsedTime = () => {
-  elapsedTime.value += 0.1;
-  formattedElapsedTime.value = elapsedTime.value.toFixed(1);
-};
-
-function MakeQuiz() {
-  answer = getRandomMajorScale();
-  abcNotation.value = MajorScaleToAbcNotation(answer) + '\n|';
-  quizStartTime = performance.now();
-  elapsedTime.value = 0;
 }
 
-async function OnAnswerCorrect() {
-  const duration = performance.now() - quizStartTime;
-  modalText.value = `You took ${(duration / 1000).toFixed(1)} seconds`;
+async function onAnswerFail() {
+  modalText.value = '오답입니다. 다시 시도하세요.';
   showResultModal.value = true;
-
-  const item = {
-    scale: answer,
-    saveTime: Date.now(),
-    isSolvedCorrectly: true,
-    during: duration,
-  };
-
-  await store.dispatch('addScaleQuizStore', item);
-  scaleQuizItems.value.push(item);
+  if (currentQuiz.value) {
+    await SpacedRepetition.updateQuizSchedule(currentQuiz.value.id, false);
+  }
 }
 
-function OnAnswerFail() {
-  modalText.value = 'Wrong answer! Try again.';
-  showResultModal.value = true;
-}
-
-function OnClickNextInModal() {
+function onClickNextInModal() {
   showResultModal.value = false;
-  MakeQuiz();
+  showDetailModal.value = false;
+  // 다음 퀴즈를 로드하는 로직을 구현하세요.
 }
 </script>
 
 <style scoped>
-.close-button {
-  display: block;
-  margin: 20px auto 0;
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.scale-view {
   text-align: center;
-}
-
-.close-button:hover {
-  background-color: #0056b3;
+  padding: 20px;
 }
 </style>

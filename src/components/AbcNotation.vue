@@ -1,6 +1,6 @@
 <template>
   <div class="abc_notation">
-    <div ref="sheet"></div>
+    <div ref="sheet"> </div>
   </div>
 </template>
 
