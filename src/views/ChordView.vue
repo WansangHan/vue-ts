@@ -28,9 +28,8 @@ import { ref, onMounted } from 'vue';
 import AbcNotation from '@/components/AbcNotation.vue';
 import PianoKeys from '@/components/PianoKeys.vue';
 import BaseModal from '@/components/BaseModal.vue';
-import { ChromaticNote } from '@/types/ChromaticNote';
-import { ChordType } from '@/types/ChordType';
-import { getChordNotes } from '@/functions/music/Chord';
+import { ChordType, getChordNotes } from '@/functions/music/Chord';
+import { ChromaticNote } from '@/functions/music/Note';
 
 export default {
   components: {
@@ -50,7 +49,7 @@ export default {
     const getRandomChord = () => {
       const notes = Object.values(ChromaticNote);
       const chordTypes = Object.values(ChordType);
-      const randomRoot = notes[Math.floor(Math.random() * notes.length)];
+      const randomRoot = notes[Math.floor(Math.random() * notes.length)] as ChromaticNote;
       const randomType = chordTypes[Math.floor(Math.random() * chordTypes.length)];
       return { root: randomRoot, type: randomType };
     };
